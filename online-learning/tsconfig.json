@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+
+    "module": "CommonJS" /* Specify what module code is generated. */,
+    "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "Node",
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "include": ["./src/**/*.ts", "node.d.ts", "express.d.ts"],
+  "exclude": ["node_modules"]
+}
