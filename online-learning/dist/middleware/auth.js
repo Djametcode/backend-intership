@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registAdminMiddleware = exports.adminAuthMiddleware = void 0;
+exports.userAuthMiddleware = exports.registAdminMiddleware = exports.adminAuthMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const adminAuthMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const header = req.headers.authorization;
@@ -22,7 +22,7 @@ const adminAuthMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0
     const token = header.split(" ")[1];
     try {
         const payload = yield jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        req.user = { userId: payload.userId, email: payload.email };
+        req.admin = { adminId: payload.userId, email: payload.email };
         next();
     }
     catch (error) {
@@ -49,3 +49,18 @@ const registAdminMiddleware = (req, res, next) => __awaiter(void 0, void 0, void
     }
 });
 exports.registAdminMiddleware = registAdminMiddleware;
+const userAuthMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith("Bearer ")) {
+        return res.status(401).json({ msg: "Please login first" });
+    }
+    const token = header.split(" ")[1];
+    try {
+        const payload = yield jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        req.user = { userId: payload.userId, email: payload.email };
+        next();
+    }
+    catch (error) {
+    }
+});
+exports.userAuthMiddleware = userAuthMiddleware;

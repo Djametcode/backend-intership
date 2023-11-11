@@ -3,9 +3,12 @@ import { userModel } from "../model/userModel";
 import { hashPassword } from "../helper/hashPassword";
 import { generateJWT } from "../helper/generateJWT";
 import { courseModel } from "../model/courseModel";
+import { comparePass } from "../helper/comparePass";
+import { v2 as cloudinary } from 'cloudinary'
 
 const registerUser = async (req: Request, res: Response) => {
     const { username, email, password } = req.body
+    let file = req.file
 
     if (!username) {
         return res.status(400).json({ msg: "Please provide username" })
@@ -24,15 +27,36 @@ const registerUser = async (req: Request, res: Response) => {
 
         const hashedPass = await hashPassword(password)
 
+        if (!file) {
+            const newUser = new userModel({
+                username: username,
+                email: email,
+                password: hashedPass,
+                avatar: ""
+            })
+
+            const user = await userModel.create(newUser)
+
+            return res.status(200).json({ msg: "success", user })
+        }
+
+        const image = await cloudinary.uploader.upload(file.path, {
+            folder: 'Testing',
+            resource_type: 'auto'
+        })
+
         const newUser = new userModel({
             username: username,
             email: email,
             password: hashedPass,
+            avatar: image.secure_url
         })
 
         const user = await userModel.create(newUser)
 
         return res.status(200).json({ msg: "success", user })
+
+
     } catch (error) {
         console.log(error)
     }
@@ -52,7 +76,13 @@ const loginUser = async (req: Request, res: Response) => {
             return res.status(404).json({ msg: "Email not registered yet" })
         }
 
-        const token = await generateJWT({ id: user._id, email: user.email })
+        const isPassCorrect = await comparePass({ userInputPass: password, encryptedPass: user.password })
+
+        if (!isPassCorrect) {
+            return res.status(401).json({ msg: "Password wrong" })
+        }
+
+        const token = generateJWT({ id: user._id, email: user.email })
 
         return res.status(200).json({ msg: "success", user, token })
     } catch (error) {
@@ -64,16 +94,11 @@ const getCategoryCourse = async (req: Request, res: Response) => {
     const { category } = req.query
 
     if (!category || category == undefined) {
-        return res.status(400).json({ msg: "Please provide category" })
-    }
-
-    if (category != 'backend' || 'frontend' || 'ui/ux' || 'other' || 'qa' || 'devops') {
-        return res.status(400).json({ msg: "Please fill only right category" })
+        return res.status(400).json({ msg: "Please provide category query" })
     }
 
     try {
         const course = await courseModel.find({ courseCategory: category })
-
 
         return res.status(200).json({ msg: "success", course });
     } catch (error) {
@@ -84,12 +109,10 @@ const getCategoryCourse = async (req: Request, res: Response) => {
 const getPopularCategory = async (req: Request, res: Response) => {
     try {
         const course = await courseModel.find({})
-
-        return res.status(200).json({ msg: "Success", course })
     } catch (error) {
-        console.log(error)
+        console.error("Error:", error);
     }
-}
+};
 
 const getCourse = async (req: Request, res: Response) => {
     const { id } = req.params
@@ -104,9 +127,18 @@ const getCourse = async (req: Request, res: Response) => {
 
         const course = await courseModel.findOne({ _id: id })
 
+        const userCheck = user.myCourse.findIndex((item) => item.courseId.equals(course?._id))
+
+        if (userCheck !== -1) {
+            return res.status(400).json({ msg: "You only can buy once" })
+        }
+
         if (course?._id !== undefined) {
-            await user.myCourse.push({ courseId: course?._id })
+            user.myCourse.push({ courseId: course?._id })
+            course.totalSold.push({ userId: user._id })
+
             await user.save()
+            await course.save()
 
             return res.status(200).json({ msg: "success", course, user })
         }
@@ -134,36 +166,36 @@ const getDetailCourse = async (req: Request, res: Response) => {
 }
 
 const searchCourse = async (req: Request, res: Response) => {
-    const { name, sort } = req.query
-    const regex = new RegExp(name as string, "i")
+    const { name, price } = req.query;
 
     try {
         if (name) {
-            const course = await courseModel.find({ name: { $regex: { regex, $options: "i" } } })
+            const regex = new RegExp(name as string, 'i');
 
-            return res.status(200).json({ msg: "success", course })
+            let query = courseModel.find({ name: { $regex: regex } });
+
+            if (price === 'asc') {
+                query.sort({ price: 1 })
+            }
+
+            if (price === 'desc') {
+                query.sort({ price: -1 })
+            }
+
+            if (price === 'free') {
+                query.where({ isFree: true })
+            }
+
+            const courses = await query.exec();
+
+            return res.status(200).json({ msg: 'success', courses });
+        } else {
+            return res.status(400).json({ msg: 'Please provide a search term' });
         }
-
-        if (name && sort === 'asc') {
-            const course = await courseModel.find({ name: { $regex: { regex, $options: "i" } } }).sort({ price: 1 })
-
-            return res.status(200).json({ msg: "success", course })
-        }
-
-        if (name && sort === 'desc') {
-            const course = await courseModel.find({ name: { $regex: { regex, $options: "i" } } }).sort({ price: -1 })
-
-            return res.status(200).json({ msg: "success", course })
-        }
-
-        if (name && sort === 'free') {
-            const course = await courseModel.find({ name: { $regex: { regex, $options: "i" } } }).where({ isFree: true })
-
-            return res.status(200).json({ msg: "success", course })
-        }
-
-        return res.status(400).json({ msg: "please provide correct query" })
     } catch (error) {
-        console.log(error)
+        console.error(error);
+        return res.status(500).json({ msg: 'Internal Server Error' });
     }
-}
+};
+
+export { registerUser, loginUser, getCategoryCourse, getPopularCategory, getCourse, getDetailCourse, searchCourse }

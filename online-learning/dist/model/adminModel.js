@@ -22,6 +22,12 @@ const adminSchema = new Schema({
     avatar: {
         type: String,
         default: ""
-    }
+    },
+    createdCourse: [{
+            courseId: {
+                type: Schema.Types.ObjectId,
+                ref: "Course"
+            }
+        }]
 });
 exports.adminModel = mongoose_1.default.model("Admin", adminSchema);

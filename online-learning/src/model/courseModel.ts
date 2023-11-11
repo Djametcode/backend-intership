@@ -3,8 +3,8 @@ const { Schema } = mongoose
 
 interface ISold {
     userId: Types.ObjectId;
-    review: string;
-    rating: number
+    review?: string;
+    rating?: number
 }
 
 interface ICourse {

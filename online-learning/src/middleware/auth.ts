@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
-interface IPayload {
+interface IPayloadAdmin {
+    userId: string;
+    email: string
+}
+
+interface IPayloadUser {
     userId: string;
     email: string
 }
@@ -16,9 +21,9 @@ export const adminAuthMiddleware = async (req: Request, res: Response, next: Nex
     const token = header.split(" ")[1]
 
     try {
-        const payload = await jwt.verify(token, process.env.JWT_SECRET) as IPayload;
+        const payload = await jwt.verify(token, process.env.JWT_SECRET) as IPayloadAdmin;
 
-        req.user = { userId: payload.userId, email: payload.email }
+        req.admin = { adminId: payload.userId, email: payload.email }
         next()
     } catch (error) {
         console.log(error)
@@ -42,5 +47,23 @@ export const registAdminMiddleware = async (req: Request, res: Response, next: N
         next()
     } catch (error) {
         console.log(error)
+    }
+}
+
+export const userAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    const header = req.headers.authorization;
+
+    if (!header || !header.startsWith("Bearer ")) {
+        return res.status(401).json({ msg: "Please login first" })
+    }
+
+    const token = header.split(" ")[1]
+
+    try {
+        const payload = await jwt.verify(token, process.env.JWT_SECRET) as IPayloadUser
+        req.user = { userId: payload.userId, email: payload.email }
+        next()
+    } catch (error) {
+
     }
 }

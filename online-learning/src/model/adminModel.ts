@@ -1,11 +1,16 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 const { Schema } = mongoose
 
+interface ICourse {
+    courseId: Types.ObjectId
+}
+
 interface IAdmin {
-    username: string,
-    email: string,
-    password: string,
-    avatar: string
+    username: string;
+    email: string;
+    password: string;
+    avatar: string;
+    createdCourse: ICourse[]
 }
 
 const adminSchema = new Schema<IAdmin>({
@@ -24,7 +29,13 @@ const adminSchema = new Schema<IAdmin>({
     avatar: {
         type: String,
         default: ""
-    }
+    },
+    createdCourse: [{
+        courseId: {
+            type: Schema.Types.ObjectId,
+            ref: "Course"
+        }
+    }]
 })
 
 export const adminModel = mongoose.model<IAdmin>("Admin", adminSchema)

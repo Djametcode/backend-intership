@@ -68,18 +68,19 @@ const loginAdmin = async (req: Request, res: Response) => {
 
 const createCourse = async (req: Request, res: Response) => {
     const { name, price, description, category } = req.body
-    const userId = req.user.userId
-    let file = req.file?.path
+    const adminId = req.admin.adminId
 
-    if (!file) {
-        return res.status(400).json({ msg: "Please attach file to fill course image" })
-    }
+    let file = req.file?.path;
 
     try {
-        const admin = await adminModel.findOne({ _id: userId })
+        const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
             return res.status(401).json({ msg: "Only admin can create course" })
+        }
+
+        if (!file || file == undefined) {
+            return res.status(400).json({ msg: "Please attach file" })
         }
 
         const image = await cloudinary.uploader.upload(file, {
@@ -91,12 +92,15 @@ const createCourse = async (req: Request, res: Response) => {
             name: name,
             price: price,
             description: description,
-            owner: userId,
+            owner: adminId,
             courseImage: [image.secure_url],
             courseCategory: category
         })
 
         const course = await courseModel.create(newCourse)
+
+        admin.createdCourse.push({ courseId: course._id })
+        await admin.save()
 
         return res.status(200).json({ msg: 'Success', course })
     } catch (error) {
@@ -116,7 +120,7 @@ const getAllCourse = async (req: Request, res: Response) => {
 
 const updateCourse = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const userId = req.user.userId
+    const adminId = req.admin.adminId
 
     const { name, price, description } = req.body;
 
@@ -133,7 +137,7 @@ const updateCourse = async (req: Request, res: Response) => {
     }
 
     try {
-        const admin = await adminModel.findOne({ _id: userId })
+        const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
             return res.status(401).json({ msg: "Only admin can perform this" })
@@ -153,9 +157,49 @@ const updateCourse = async (req: Request, res: Response) => {
     }
 }
 
+const deleteCourse = async (req: Request, res: Response) => {
+    const { id: courseId } = req.params
+    const adminId = req.admin.adminId
+
+    try {
+        const admin = await adminModel.findOne({ _id: adminId })
+
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" })
+        }
+
+        const courseOwner = await courseModel.findOne({ _id: courseId })
+        console.log(courseOwner?._id)
+
+        const checkOwner = courseOwner?.owner._id.toString() === admin._id.toString()
+        console.log(checkOwner)
+
+        if (!checkOwner) {
+            return res.status(401).json({ msg: "Only owner can delete this" })
+        }
+
+        const course = await courseModel.findOneAndDelete({ _id: courseId })
+
+        const courseIndex = admin.createdCourse.findIndex((item) => item.courseId.equals(courseId))
+
+        if (courseIndex === - 1) {
+            return res.status(400).json({ msg: "course already deleted" })
+        }
+
+
+        admin.createdCourse.splice(courseIndex, 1)
+        await admin.save()
+
+
+        return res.status(200).json({ msg: "success", course, admin })
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 const deleteUser = async (req: Request, res: Response) => {
     const { id: userId } = req.params
-    const adminId = req.user.userId;
+    const adminId = req.admin.adminId;
 
     if (!userId) {
         return res.status(400).json({ msg: "Please provide target user" })
@@ -177,20 +221,25 @@ const deleteUser = async (req: Request, res: Response) => {
 }
 
 const getSimpleStatistic = async (req: Request, res: Response) => {
-    const adminId = req.user.userId;
+    const adminId = req.admin.adminId;
 
     try {
         const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can delete this" })
+            return res.status(401).json({ msg: "Only admin can perform this" })
         }
 
         const totalUser = await userModel.find({}).count()
+        const totalCourse = await courseModel.find({}).count()
+        const totalFreeCourse = await courseModel.find({}).where({ isFree: true }).count()
 
         return res.status(200).json({
             msg: "Simple statistic", data: {
-                totalUser: totalUser
+                totalUser: totalUser,
+                totalCourse: totalCourse,
+                totalFreeCourse: totalFreeCourse
+
             }
         })
     } catch (error) {
@@ -198,4 +247,4 @@ const getSimpleStatistic = async (req: Request, res: Response) => {
     }
 }
 
-export { createCourse, getAllCourse, updateCourse, registerAdmin, deleteUser, getSimpleStatistic, loginAdmin }
+export { createCourse, getAllCourse, updateCourse, registerAdmin, deleteUser, getSimpleStatistic, loginAdmin, deleteCourse }

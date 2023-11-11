@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginAdmin = exports.getSimpleStatistic = exports.deleteUser = exports.registerAdmin = exports.updateCourse = exports.getAllCourse = exports.createCourse = void 0;
+exports.deleteCourse = exports.loginAdmin = exports.getSimpleStatistic = exports.deleteUser = exports.registerAdmin = exports.updateCourse = exports.getAllCourse = exports.createCourse = void 0;
 const courseModel_1 = require("../model/courseModel");
 const adminModel_1 = require("../model/adminModel");
 const hashPassword_1 = require("../helper/hashPassword");
@@ -67,15 +67,15 @@ exports.loginAdmin = loginAdmin;
 const createCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { name, price, description, category } = req.body;
-    const userId = req.user.userId;
+    const adminId = req.admin.adminId;
     let file = (_a = req.file) === null || _a === void 0 ? void 0 : _a.path;
-    if (!file) {
-        return res.status(400).json({ msg: "Please attach file to fill course image" });
-    }
     try {
-        const admin = yield adminModel_1.adminModel.findOne({ _id: userId });
+        const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
             return res.status(401).json({ msg: "Only admin can create course" });
+        }
+        if (!file || file == undefined) {
+            return res.status(400).json({ msg: "Please attach file" });
         }
         const image = yield cloudinary_1.v2.uploader.upload(file, {
             folder: 'Testing',
@@ -85,11 +85,13 @@ const createCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             name: name,
             price: price,
             description: description,
-            owner: userId,
+            owner: adminId,
             courseImage: [image.secure_url],
             courseCategory: category
         });
         const course = yield courseModel_1.courseModel.create(newCourse);
+        admin.createdCourse.push({ courseId: course._id });
+        yield admin.save();
         return res.status(200).json({ msg: 'Success', course });
     }
     catch (error) {
@@ -109,7 +111,7 @@ const getAllCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 exports.getAllCourse = getAllCourse;
 const updateCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const adminId = req.admin.adminId;
     const { name, price, description } = req.body;
     if (!name) {
         return res.status(400).json({ msg: 'Please fill name update for course' });
@@ -121,7 +123,7 @@ const updateCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         return res.status(400).json({ msg: "Please fill description update for course" });
     }
     try {
-        const admin = yield adminModel_1.adminModel.findOne({ _id: userId });
+        const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
             return res.status(401).json({ msg: "Only admin can perform this" });
         }
@@ -137,9 +139,38 @@ const updateCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.updateCourse = updateCourse;
+const deleteCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id: courseId } = req.params;
+    const adminId = req.admin.adminId;
+    try {
+        const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" });
+        }
+        const courseOwner = yield courseModel_1.courseModel.findOne({ _id: courseId });
+        console.log(courseOwner === null || courseOwner === void 0 ? void 0 : courseOwner._id);
+        const checkOwner = (courseOwner === null || courseOwner === void 0 ? void 0 : courseOwner.owner._id.toString()) === admin._id.toString();
+        console.log(checkOwner);
+        if (!checkOwner) {
+            return res.status(401).json({ msg: "Only owner can delete this" });
+        }
+        const course = yield courseModel_1.courseModel.findOneAndDelete({ _id: courseId });
+        const courseIndex = admin.createdCourse.findIndex((item) => item.courseId.equals(courseId));
+        if (courseIndex === -1) {
+            return res.status(400).json({ msg: "course already deleted" });
+        }
+        admin.createdCourse.splice(courseIndex, 1);
+        yield admin.save();
+        return res.status(200).json({ msg: "success", course, admin });
+    }
+    catch (error) {
+        console.log(error);
+    }
+});
+exports.deleteCourse = deleteCourse;
 const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id: userId } = req.params;
-    const adminId = req.user.userId;
+    const adminId = req.admin.adminId;
     if (!userId) {
         return res.status(400).json({ msg: "Please provide target user" });
     }
@@ -157,16 +188,20 @@ const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.deleteUser = deleteUser;
 const getSimpleStatistic = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const adminId = req.user.userId;
+    const adminId = req.admin.adminId;
     try {
         const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can delete this" });
+            return res.status(401).json({ msg: "Only admin can perform this" });
         }
         const totalUser = yield userModel_1.userModel.find({}).count();
+        const totalCourse = yield courseModel_1.courseModel.find({}).count();
+        const totalFreeCourse = yield courseModel_1.courseModel.find({}).where({ isFree: true }).count();
         return res.status(200).json({
             msg: "Simple statistic", data: {
-                totalUser: totalUser
+                totalUser: totalUser,
+                totalCourse: totalCourse,
+                totalFreeCourse: totalFreeCourse
             }
         });
     }

@@ -7,6 +7,10 @@ declare global {
                 userId: string;
                 email: string;
             }
+            admin: {
+                adminId: string;
+                email: string;
+            }
         }
     }
 }

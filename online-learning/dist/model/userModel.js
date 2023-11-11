@@ -19,6 +19,10 @@ const userSchema = new Schema({
         type: String,
         required: [true, "Please provide password"]
     },
+    avatar: {
+        type: String,
+        default: ""
+    },
     myCourse: [{
             courseId: {
                 type: Schema.Types.ObjectId,

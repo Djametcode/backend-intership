@@ -6,10 +6,12 @@ const app = express()
 
 import { connectDB } from './database/connectDB'
 import { adminRouter } from './routes/adminRoutes'
+import { userRoute } from './routes/userRoutes'
 
 app.use(cors())
 app.use(express.json())
 app.use('/api/online-learning/admin', adminRouter)
+app.use('/api/online-learning/user', userRoute)
 
 cloudinary.config({
     api_key: process.env.API_KEY,

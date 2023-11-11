@@ -9,6 +9,7 @@ interface IUser {
     username: string;
     email: string;
     password: string;
+    avatar: string;
     myCourse: ICourse[]
 }
 
@@ -24,6 +25,10 @@ const userSchema = new Schema<IUser>({
     password: {
         type: String,
         required: [true, "Please provide password"]
+    },
+    avatar: {
+        type: String,
+        default: ""
     },
     myCourse: [{
         courseId: {
