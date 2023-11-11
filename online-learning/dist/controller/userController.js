@@ -97,7 +97,25 @@ const getCategoryCourse = (req, res) => __awaiter(void 0, void 0, void 0, functi
 exports.getCategoryCourse = getCategoryCourse;
 const getPopularCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const course = yield courseModel_1.courseModel.find({});
+        const course = yield courseModel_1.courseModel.aggregate([
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    totalSoldCount: {
+                        $cond: { if: { $isArray: "$totalSold" }, then: { $size: "$totalSold" }, else: 0 }
+                    }
+                }
+            },
+            {
+                $sort: { totalSoldCount: -1 }
+            },
+            {
+                $limit: 5
+            }
+        ]);
+        const populatedCourses = yield courseModel_1.courseModel.populate(course, { path: "_id" });
+        return res.status(200).json({ msg: "success", populatedCourses });
     }
     catch (error) {
         console.error("Error:", error);
@@ -134,6 +152,10 @@ const getDetailCourse = (req, res) => __awaiter(void 0, void 0, void 0, function
     const { id: courseId } = req.params;
     const userId = req.user.userId;
     try {
+        const user = yield userModel_1.userModel.findOne({ _id: userId });
+        if (!user) {
+            return res.status(401).json({ msg: "Token invalid" });
+        }
         const course = yield courseModel_1.courseModel.findOne({ _id: courseId });
         if (!course) {
             return res.status(404).json({ msg: "course not found" });

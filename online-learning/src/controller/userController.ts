@@ -108,7 +108,27 @@ const getCategoryCourse = async (req: Request, res: Response) => {
 
 const getPopularCategory = async (req: Request, res: Response) => {
     try {
-        const course = await courseModel.find({})
+        const course = await courseModel.aggregate([
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    totalSoldCount: {
+                        $cond: { if: { $isArray: "$totalSold" }, then: { $size: "$totalSold" }, else: 0 }
+                    }
+                }
+            },
+            {
+                $sort: { totalSoldCount: -1 }
+            },
+            {
+                $limit: 5
+            }
+        ])
+
+        const populatedCourses = await courseModel.populate(course, { path: "_id" });
+
+        return res.status(200).json({ msg: "success", populatedCourses })
     } catch (error) {
         console.error("Error:", error);
     }
@@ -153,6 +173,12 @@ const getDetailCourse = async (req: Request, res: Response) => {
     const userId = req.user.userId
 
     try {
+        const user = await userModel.findOne({ _id: userId })
+
+        if (!user) {
+            return res.status(401).json({ msg: "Token invalid" })
+        }
+
         const course = await courseModel.findOne({ _id: courseId })
 
         if (!course) {
