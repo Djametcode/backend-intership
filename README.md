@@ -4,14 +4,13 @@ Backend Test Elemes By Tofik Hidayat
 
 ## Online Learning API
 
-## How To Install Program
+How To Install Progra
 
 1. Make sure you installed nodeJS
    - node --version to check
 2. Clone this repository
 3. Open terminal check position by type ls. If you still see online-learning
-   - Type cd online learning
-   - Then npm install
+   - Type cd online learning, Then npm install
 4. in same folder, type touch .env. then open that folder
 
 > [!IMPORTANT]
