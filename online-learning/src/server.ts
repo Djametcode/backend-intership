@@ -22,7 +22,7 @@ cloudinary.config({
 const startServer = async () => {
     try {
         await connectDB(process.env.MONGO_URL)
-        app.listen(3000, () => console.log("Server running"))
+        app.listen(process.env.PORT || 3000, () => console.log("Server running"))
     } catch (error) {
         console.log(error)
     }
