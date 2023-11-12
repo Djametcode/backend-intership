@@ -17,24 +17,18 @@ How To Install Progra
 > You must do this step, if you skip then the API cannot run
 
 1. edit the .env and fill
-
-   ## create account on mongoDB atlas then click connect to get mongo url
-
+   
    - MONGO_URL : your mongoDB atlas url
    - JWT_SECRET: example
    - JWT_TIMES : 2d
-
-   ### create account on cloudinary first to fill this section
 
    - CLOUD_NAME : cloudinary cloud
    - API_KEY : cloudinary api key
    - API_SECRET: cloudinary api secret
 
-   ### fill admin code for registration new admin
-
    - SECRET_ADMIN : example
 
-2. You ready to go
+3. You ready to go
 
 ## How To Run Program
 
