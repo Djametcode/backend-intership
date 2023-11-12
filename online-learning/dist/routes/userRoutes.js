@@ -9,7 +9,7 @@ const userController_1 = require("../controller/userController");
 const auth_1 = require("../middleware/auth");
 const multer_1 = require("../middleware/multer");
 const router = express_1.default.Router();
-router.post('/register', multer_1.upload.single("avatar"), userController_1.registerUser);
+router.post('/register', multer_1.upload.single("image"), userController_1.registerUser);
 router.post('/login', userController_1.loginUser);
 router.get('/course/get-category', auth_1.userAuthMiddleware, userController_1.getCategoryCourse);
 router.get('/course/popular-course', auth_1.userAuthMiddleware, userController_1.getPopularCategory);

@@ -32,14 +32,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         }
         const hashedPass = yield (0, hashPassword_1.hashPassword)(password);
         if (!file) {
-            const newUser = new userModel_1.userModel({
-                username: username,
-                email: email,
-                password: hashedPass,
-                avatar: ""
-            });
-            const user = yield userModel_1.userModel.create(newUser);
-            return res.status(200).json({ msg: "success", user });
+            return res.status(400).json({ msg: "Please provide file" });
         }
         const image = yield cloudinary_1.v2.uploader.upload(file.path, {
             folder: 'Testing',

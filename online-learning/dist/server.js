@@ -32,7 +32,7 @@ cloudinary_1.v2.config({
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, connectDB_1.connectDB)(process.env.MONGO_URL);
-        app.listen(3000, () => console.log("Server running"));
+        app.listen(process.env.PORT || 3000);
     }
     catch (error) {
         console.log(error);

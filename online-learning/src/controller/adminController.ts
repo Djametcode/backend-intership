@@ -10,6 +10,9 @@ import { v2 as cloudinary } from 'cloudinary'
 const registerAdmin = async (req: Request, res: Response) => {
     const { username, email, password } = req.body
 
+    let file = req.file
+
+
     if (!username) {
         return res.status(400).json({ msg: "Please fill username" })
     }
@@ -18,13 +21,29 @@ const registerAdmin = async (req: Request, res: Response) => {
         return res.status(400).json({ msg: "Please fill email" })
     }
 
+    if (!file) {
+        return res.status(400).json({ msg: "Please attach file" })
+    }
+
     try {
+        const user = await adminModel.findOne({ email: email })
+
+        if (user) {
+            return res.status(400).json({ msg: "email already registered" })
+        }
+
+        const image = await cloudinary.uploader.upload(file.path, {
+            folder: 'Testing',
+            resource_type: 'auto'
+        })
+
         const hashedPass = await hashPassword(password)
 
         const newAdmin = new adminModel({
             username: username,
             email: email,
-            password: hashedPass
+            password: hashedPass,
+            avatar: image.secure_url
         })
 
         const admin = await adminModel.create(newAdmin);
@@ -76,7 +95,7 @@ const createCourse = async (req: Request, res: Response) => {
         const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can create course" })
+            return res.status(401).json({ msg: "Token Invalid or only admin can create course, please login again" })
         }
 
         if (!file || file == undefined) {
@@ -109,7 +128,14 @@ const createCourse = async (req: Request, res: Response) => {
 }
 
 const getAllCourse = async (req: Request, res: Response) => {
+    const adminId = req.admin.adminId
     try {
+        const admin = await adminModel.findOne({ _id: adminId })
+
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" })
+        }
+
         const course = await courseModel.find({})
 
         return res.status(200).json({ msg: 'Success', course })
@@ -140,7 +166,7 @@ const updateCourse = async (req: Request, res: Response) => {
         const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can perform this" })
+            return res.status(401).json({ msg: "Token invalid or only admin can perform this, please login again" })
         }
 
         const course = await courseModel.findOne({ _id: id })
@@ -152,6 +178,29 @@ const updateCourse = async (req: Request, res: Response) => {
         const updatedCourse = await courseModel.findOneAndUpdate({ _id: id }, { ...req.body }, { new: true })
 
         return res.status(200).json({ msg: "Success update course", updatedCourse })
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const getCourseById = async (req: Request, res: Response) => {
+    const { id } = req.params
+    const adminId = req.admin.adminId
+
+    try {
+        const admin = await adminModel.findOne({ _id: adminId })
+
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" })
+        }
+
+        const course = await courseModel.findOne({ _id: id }).populate({ path: "owner", select: ["_id", "username", "email"] })
+
+        if (!course) {
+            return res.status(404).json({ msg: 'course not found' })
+        }
+
+        return res.status(200).json({ msg: "success", course })
     } catch (error) {
         console.log(error)
     }
@@ -209,7 +258,7 @@ const deleteUser = async (req: Request, res: Response) => {
         const admin = await adminModel.findOne({ _id: adminId })
 
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can perform this" })
+            return res.status(401).json({ msg: "Token invalid, or only admin can perform this, please login again" })
         }
 
         const user = await userModel.findOneAndDelete({ _id: userId })
@@ -247,4 +296,4 @@ const getSimpleStatistic = async (req: Request, res: Response) => {
     }
 }
 
-export { createCourse, getAllCourse, updateCourse, registerAdmin, deleteUser, getSimpleStatistic, loginAdmin, deleteCourse }
+export { createCourse, getAllCourse, updateCourse, registerAdmin, deleteUser, getSimpleStatistic, loginAdmin, deleteCourse, getCourseById }

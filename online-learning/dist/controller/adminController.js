@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCourse = exports.loginAdmin = exports.getSimpleStatistic = exports.deleteUser = exports.registerAdmin = exports.updateCourse = exports.getAllCourse = exports.createCourse = void 0;
+exports.getCourseById = exports.deleteCourse = exports.loginAdmin = exports.getSimpleStatistic = exports.deleteUser = exports.registerAdmin = exports.updateCourse = exports.getAllCourse = exports.createCourse = void 0;
 const courseModel_1 = require("../model/courseModel");
 const adminModel_1 = require("../model/adminModel");
 const hashPassword_1 = require("../helper/hashPassword");
@@ -19,18 +19,31 @@ const generateJWT_1 = require("../helper/generateJWT");
 const cloudinary_1 = require("cloudinary");
 const registerAdmin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
+    let file = req.file;
     if (!username) {
         return res.status(400).json({ msg: "Please fill username" });
     }
     if (!email) {
         return res.status(400).json({ msg: "Please fill email" });
     }
+    if (!file) {
+        return res.status(400).json({ msg: "Please attach file" });
+    }
     try {
+        const user = yield adminModel_1.adminModel.findOne({ email: email });
+        if (user) {
+            return res.status(400).json({ msg: "email already registered" });
+        }
+        const image = yield cloudinary_1.v2.uploader.upload(file.path, {
+            folder: 'Testing',
+            resource_type: 'auto'
+        });
         const hashedPass = yield (0, hashPassword_1.hashPassword)(password);
         const newAdmin = new adminModel_1.adminModel({
             username: username,
             email: email,
-            password: hashedPass
+            password: hashedPass,
+            avatar: image.secure_url
         });
         const admin = yield adminModel_1.adminModel.create(newAdmin);
         return res.status(200).json({ msg: "Success regist admin", admin });
@@ -72,7 +85,7 @@ const createCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     try {
         const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can create course" });
+            return res.status(401).json({ msg: "Token Invalid or only admin can create course, please login again" });
         }
         if (!file || file == undefined) {
             return res.status(400).json({ msg: "Please attach file" });
@@ -100,7 +113,12 @@ const createCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.createCourse = createCourse;
 const getAllCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const adminId = req.admin.adminId;
     try {
+        const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" });
+        }
         const course = yield courseModel_1.courseModel.find({});
         return res.status(200).json({ msg: 'Success', course });
     }
@@ -125,7 +143,7 @@ const updateCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     try {
         const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can perform this" });
+            return res.status(401).json({ msg: "Token invalid or only admin can perform this, please login again" });
         }
         const course = yield courseModel_1.courseModel.findOne({ _id: id });
         if (!course) {
@@ -139,6 +157,25 @@ const updateCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.updateCourse = updateCourse;
+const getCourseById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const adminId = req.admin.adminId;
+    try {
+        const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
+        if (!admin) {
+            return res.status(401).json({ msg: "Token invalid" });
+        }
+        const course = yield courseModel_1.courseModel.findOne({ _id: id }).populate({ path: "owner", select: ["_id", "username", "email"] });
+        if (!course) {
+            return res.status(404).json({ msg: 'course not found' });
+        }
+        return res.status(200).json({ msg: "success", course });
+    }
+    catch (error) {
+        console.log(error);
+    }
+});
+exports.getCourseById = getCourseById;
 const deleteCourse = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id: courseId } = req.params;
     const adminId = req.admin.adminId;
@@ -177,7 +214,7 @@ const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     try {
         const admin = yield adminModel_1.adminModel.findOne({ _id: adminId });
         if (!admin) {
-            return res.status(401).json({ msg: "Only admin can perform this" });
+            return res.status(401).json({ msg: "Token invalid, or only admin can perform this, please login again" });
         }
         const user = yield userModel_1.userModel.findOneAndDelete({ _id: userId });
         return res.status(200).json({ msg: 'Success delete user', user });

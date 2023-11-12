@@ -4,7 +4,7 @@ import { userAuthMiddleware } from '../middleware/auth'
 import { upload } from '../middleware/multer'
 const router = exprees.Router()
 
-router.post('/register', upload.single("avatar"), registerUser)
+router.post('/register', upload.single("image"), registerUser)
 router.post('/login', loginUser)
 router.get('/course/get-category', userAuthMiddleware, getCategoryCourse)
 router.get('/course/popular-course', userAuthMiddleware, getPopularCategory)

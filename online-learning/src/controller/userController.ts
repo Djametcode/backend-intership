@@ -28,16 +28,7 @@ const registerUser = async (req: Request, res: Response) => {
         const hashedPass = await hashPassword(password)
 
         if (!file) {
-            const newUser = new userModel({
-                username: username,
-                email: email,
-                password: hashedPass,
-                avatar: ""
-            })
-
-            const user = await userModel.create(newUser)
-
-            return res.status(200).json({ msg: "success", user })
+            return res.status(400).json({ msg: "Please provide file" })
         }
 
         const image = await cloudinary.uploader.upload(file.path, {
