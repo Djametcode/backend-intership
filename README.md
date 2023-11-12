@@ -32,7 +32,7 @@ How To Install Progra
 
    ### fill admin code for registration new admin
 
-   > SECRET_ADMIN : example
+   - SECRET_ADMIN : example
 
 2. You ready to go
 
