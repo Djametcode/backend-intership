@@ -20,19 +20,19 @@ How To Install Progra
 
    ## create account on mongoDB atlas then click connect to get mongo url
 
-   > MONGO_URL : create mongo db account and click connect
-   > JWT_SECRET: fill with anything you want
-   > JWT_TIMES : for example if you wanna choose 1 day then fill 1d
+   - MONGO_URL : your mongoDB atlas url
+   - JWT_SECRET: example
+   - JWT_TIMES : 2d
 
    ### create account on cloudinary first to fill this section
 
-   > CLOUD_NAME : fill with your cloudinary cloud name
-   > API_KEY : fill with your cloudinary api key
-   > API_SECRET: fill with your cloudinary api secret
+   - CLOUD_NAME : cloudinary cloud
+   - API_KEY : cloudinary api key
+   - API_SECRET: cloudinary api secret
 
    ### fill admin code for registration new admin
 
-   > SECRET_ADMIN : fill anything but important this is needed to register new admin
+   > SECRET_ADMIN : example
 
 2. You ready to go
 
@@ -43,5 +43,4 @@ How To Install Progra
    > npm run start - To run in basic node or production
 
 ## API ROUTES
-
-access http://localhost:3000/api-docs to see that
+<a href="https://documenter.getpostman.com/view/26402715/2s9YXk3g6P">Click Here</a>
